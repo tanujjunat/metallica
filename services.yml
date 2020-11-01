@@ -1,0 +1,25 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: metallica-service
+spec:
+  selector:
+    app: metallica
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8083
+  type: LoadBalancer 
+  
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: mongodb-service
+spec:
+  selector:
+      app: mongodb
+  ports:
+    - name: mongoport
+      port: 27017
+  type: ClusterIP

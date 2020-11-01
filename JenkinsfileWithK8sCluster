@@ -1,0 +1,66 @@
+pipeline {  
+	environment {
+        registry = "awslearning/aws-learning-repo"
+        registryCredential = 'dockercredentials'
+        dockerImage = ''
+		imageName=''
+		
+	}  
+  
+	agent any 
+     
+     
+    stages {
+		stage('Compiling Project') {
+			steps {
+				echo 'Compiling Project...'
+				sh 'mvn clean package -DskipTests'
+            }
+            post {
+				success{
+						echo 'Now Archiving...'
+						archiveArtifacts artifacts: '**/target/*.jar'
+				}
+                     
+			}  
+		}
+        stage('Building Image') {
+			steps {
+				echo 'Building Image...'
+				script {
+					imageName= registry + ":metallica-$BUILD_NUMBER"
+					dockerImage = docker.build imageName
+					
+					
+                }
+            }
+        }
+		stage('Push Image') {
+			steps {
+				script {
+					docker.withRegistry( '', registryCredential ) {
+						dockerImage.push()
+					}
+				}
+			}
+		}
+		stage('Deploy image'){
+			steps {
+				script {
+					sh "chmod +x changeTag.sh"
+					sh "./changeTag.sh $BUILD_NUMBER"
+					try {
+						sh "/usr/local/bin/kubectl apply -f storage-aws.yml"
+						sh "/usr/local/bin/kubectl apply -f deploymentWithBuildNumber.yml"
+						sh "/usr/local/bin/kubectl apply -f services.yml"
+						
+					} catch (error) {
+						sh "/usr/local/bin/kubectl create -f storage-aws.yml"
+						sh "/usr/local/bin/kubectl create -f deploymentWithBuildNumber.yml"
+						sh "/usr/local/bin/kubectl create -f services.yml"
+					}
+				}
+			}
+        }
+    }
+}

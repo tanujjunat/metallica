@@ -1,0 +1,58 @@
+pipeline {  
+	environment {
+        registry = "tigerhunt/metallica"
+        registryCredential = 'dockercredentials'
+        dockerImage = ''
+		imageName=''
+		
+	}  
+  
+	agent any 
+     
+     
+    stages {
+		stage('Compiling Project') {
+			steps {
+				echo 'Compiling Project...'
+				sh 'mvn clean package -DskipTests'
+            }
+            post {
+				success{
+						echo 'Now Archiving...'
+						archiveArtifacts artifacts: '**/target/*.jar'
+				}
+                     
+			}  
+		}
+        stage('Building Image') {
+			steps {
+				echo 'Building Image...'
+				script {
+					imageName= registry + ":news-headlines-$BUILD_NUMBER"
+					dockerImage = docker.build imageName
+					
+					
+                }
+            }
+        }
+		stage('Push Image') {
+			steps {
+				script {
+					docker.withRegistry( '', registryCredential ) {
+						dockerImage.push()
+					}
+				}
+			}
+		}
+		stage('Deploy image'){
+			steps {
+				script {
+					
+						sh "ssh -i /home/ec2-user/ec2keyvalue.pem ec2-user@13.234.177.90 'sh /home/ec2-user/docker.sh news-headlines ${imageName} ' " 
+										
+				     
+				}
+			}
+        }
+    }
+}

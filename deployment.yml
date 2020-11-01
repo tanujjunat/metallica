@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metallica
+  labels:
+    app: metallica
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metallica
+  template:
+    metadata:
+      labels:
+        app: metallica
+    spec:
+      containers:
+      - name: metallica
+        image: awslearning/aws-learning-repo:metallica-tagVersion
+        ports:
+        - containerPort: 8083
+    
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+spec:
+  selector:
+    matchLabels:
+      app: mongodb
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+     containers:
+     - name: mongodb
+       image: mongo:3.6.5-jessie
+       volumeMounts:
+       - name: mongo-persistent-storage
+         mountPath: /data/db
+     volumes:
+     - name: mongo-persistent-storage
+       persistentVolumeClaim:
+         claimName: mongo-pvc
